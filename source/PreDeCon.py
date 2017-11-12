@@ -7,7 +7,9 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from collections import deque
-
+import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.manifold import TSNE
 
 class PreDeCon:
     """
@@ -175,7 +177,11 @@ class PreDeCon:
 
         return self.subspace_preference_vectors
 
-    def plot_results(self):
+    def plot_exercise3_results(self):
+        """
+        Plotting function for the toy data set from exercise 3_1, where the
+        number of clusters is already known.
+        """
         fig, ax = plt.subplots()
         ax.set_ylabel("y")
         ax.set_xlabel("x")
@@ -184,6 +190,7 @@ class PreDeCon:
         ax.xaxis.set_ticks([i for i in range(0, 13)])
         ax.yaxis.set_ticks([i for i in range(0, 13)])
         ax.grid(True)
+        print("Length Clusters: ",len(self.clusters))
         for i in range(self.data.shape[0]):
             ax.annotate("p" + str(i + 1), (self.data[i, 0], self.data[i, 1]), xytext=(self.data[i, 0], self.data[i, 1] + 0.5))
 
@@ -198,12 +205,108 @@ class PreDeCon:
                         coloring.append(colors[cluster_i])
 
         color_patches = [mpl.patches.Patch(color="yellow", label="Cluster 1"),
-                         # mpl.patches.Patch(color = "green", label = "Cluster 2"),
+                         mpl.patches.Patch(color = "green", label = "Cluster 2"),
                          mpl.patches.Patch(color="blue", label="Noise")]
         ax.legend(handles=color_patches, loc=9)
         plt.scatter(self.data[:, 0], self.data[:, 1], c=coloring);
-
         plt.show()
+
+    def _get_cluster_assignments(self):
+        """
+        Helper function to create a list of all cluster assignments for
+        each point.
+        :return cluster_assignments: list of cluster assignment for each point
+                                     e.g. for 1 cluster and Noise and 3 points:
+                                     [1,1,0], where 0 is an assignment to the
+                                     noise cluster.
+        """
+        cluster_assignments = []
+        for point in range(0, self.num_points):
+            if point in self.clusters["noise"]:
+                cluster_assignments.append(0)
+            else:
+                for cluster_i in range(1, len(self.clusters)):
+                    if point in self.clusters[cluster_i]:
+                        cluster_assignments.append(cluster_i)
+        return cluster_assignments
+
+    def _get_color_encoding(self):
+        """
+        Helper function to generate color map and color patches.
+        :return colors: mapping of seaborn rgb colors to each points
+        :return color_patches: color patches for each rgb color, will be displayed
+                               in the legend of the plot.
+        """
+        nr_of_clusters = len(self.clusters)
+        cluster_assignments = self._get_cluster_assignments()
+        color_palette = sns.color_palette("hls", nr_of_clusters)
+        color_mapping = dict()
+        noise_cluster_id = 0
+        if nr_of_clusters > 2:
+            for index, color in enumerate(color_palette):
+                color_mapping[index] = color
+        elif nr_of_clusters == 2:
+            color_mapping = {noise_cluster_id: sns.xkcd_rgb['dark blue'],
+                             1: sns.xkcd_rgb['dark red']}
+        # This case only happens if all points are considered as noise
+        elif nr_of_clusters == 1:
+            color_mapping = {noise_cluster_id: sns.xkcd_rgb['dark blue']}
+        colors = list(map(lambda x: color_mapping[x], cluster_assignments))
+        color_patches = []
+        for cluster_id, cluster_color in color_mapping.items():
+            if cluster_id != noise_cluster_id:
+                color_patches.append(mpl.patches.Patch(color=cluster_color, label="Cluster "+str(cluster_id)))
+            else:
+                color_patches.append(mpl.patches.Patch(color=cluster_color, label="Noise"))
+
+        return colors, color_patches
+
+    def plot_results(self,show=True):
+        """
+        Generic plotting function for arbitrary dimensional data.
+        Data with dimensionalty > 3 is visualized by sklearns' tsne function
+        in 2D.
+        Note that this can be quite slow for large data sets.
+        :param  show: Determine wether the plot should be shown in a new window
+                     or not.
+        :return fig: Returns the plot figure. In case the plot should be saved
+                     later.
+        """
+        # Make sure there are no open plt.figure()
+        plt.close()
+
+        colors, color_patches = self._get_color_encoding()
+        if self.num_dimensions == 3:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            # Put a legend to the right of the current axis
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                      handles=color_patches)
+            ax.scatter(
+                xs=self.data[:, 0], ys=self.data[:, 1], zs=self.data[:, 2], c=colors)
+        elif self.num_dimensions == 2:
+            fig, ax = plt.subplots()
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            # Put a legend to the right of the current axis
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                      handles=color_patches)
+            ax.scatter(x=self.data[:, 0], y=self.data[:, 1], c=colors)
+        elif self.num_dimensions > 3:
+            tsne = TSNE(learning_rate=100).fit_transform(self.data)
+            fig,ax = plt.subplots()
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            # Put a legend to the right of the current axis
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),
+                      handles=color_patches)
+            ax.scatter(tsne[:, 0], tsne[:, 1], c=colors)
+        fig.suptitle("Cluster Assignments")
+        if show:
+            plt.show()
+        return fig
 
     @staticmethod
     def is_classified(point, clusters):
@@ -278,9 +381,7 @@ class PreDeCon:
                 np.sqrt(
                     np.sum(
                         np.multiply(
-                            np.divide(1,
-                                      subspace_preference_vectors_array[i_datapoint]
-                                      ),
+                            subspace_preference_vectors_array[i_datapoint],
                             np.square(
                                 np.subtract(self.data[i_datapoint], self.data)
                             )
@@ -291,7 +392,7 @@ class PreDeCon:
 
         if verbose:
             pref_weighted_similarity_measures = np.reshape(self.pref_weighted_similarity_measures,
-                                                           (-1, self.num_points))
+                                                          (-1, self.num_points))
             for i, point in enumerate(pref_weighted_similarity_measures):
                 print("P" + str(i + 1) + "\n{}".format(point))
 
