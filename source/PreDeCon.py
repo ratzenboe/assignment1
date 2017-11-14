@@ -89,9 +89,12 @@ class PreDeCon:
 
         # Use properties in order to assign clusters.
         cluster_id = 0
-
+        if verbose:
+            print("CorePoints = ", [i+1 for i in self.core_points])
         # Loop over all points
         for point in range(0, self.num_points):
+            if verbose:
+                print("Next point ",point+1)
             if not PreDeCon.is_classified(point, self.clusters):
                 if point in self.core_points:
                     core_point_i = point
@@ -101,8 +104,13 @@ class PreDeCon:
                     queue = deque(self.preference_weighted_neighbourhoods[core_point_i])
                     # loop through points in preference_weighted_neighbourhood
                     # of the core_point_i
+                    if verbose:
+                        print("initial neighborhood of {} is \n{}".format(core_point_i +1,
+                                                                       [i+1 for i in self.preference_weighted_neighbourhoods[core_point_i]]))
                     while queue:
                         q_point = queue.popleft()
+                        if verbose:
+                            print("q_point_popped = ", q_point+1)
                         # Get all points which are direct preference reachable
                         # from point q: Definition 8:
                         # DIRREACH(q,x) <=> q is core point,
@@ -116,19 +124,30 @@ class PreDeCon:
                                         (not PreDeCon.is_classified(x_point, self.clusters)):
                                     # only insert points which are not classified yet
                                     direct_preference_reachable_from_point_q.append(x_point)
-
+                        else:
+                            # A point is always reachable from it self
+                            direct_preference_reachable_from_point_q.append(q_point)
+                        if verbose:
+                            print("direct_preference_reachable_from_point_{} is \n{}".format(q_point+1,
+                                                                                         [i+1 for i in direct_preference_reachable_from_point_q]))
                         # Loop over direct preference reachable points
                         # and assign unclassified points to the cluster
                         for reachable_point in direct_preference_reachable_from_point_q:
                             if not PreDeCon.is_classified(reachable_point, self.clusters):
+                                if verbose:
+                                    print("Point {} is appended to queue".format(reachable_point+1))
                                 queue.append(reachable_point)
                             if (not PreDeCon.is_classified(reachable_point, self.clusters)) or \
                                     (reachable_point in self.clusters["noise"]):
                                 self.clusters[cluster_id].append(reachable_point)
+                                if verbose:
+                                    print("Point {} is assigned to cluster[{}]".format(reachable_point+1,cluster_id))
                                 # points are uniquely assigned
                                 if reachable_point in self.clusters["noise"]:
                                     self.clusters["noise"].remove(reachable_point)
                 else:
+                    if verbose:
+                        print("point = {} is assigned to noise.".format(point+1))
                     self.clusters["noise"].append(point)
 
         if verbose:
