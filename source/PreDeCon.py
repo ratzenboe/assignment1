@@ -71,6 +71,17 @@ class PreDeCon:
         self.num_points = len(data)
         self.num_dimensions = len(data[0])
 
+        self.epsilon_neighbourhoods = None
+        self.attribute_variances = None
+        self.subspace_preference_vectors = None
+        self.preference_weighted_neighbourhoods = None
+        self.subspace_preference_dimensionalities = None
+        self.pref_weighted_similarity_measures = None
+        core_points = None
+
+        self.clusters = dict()
+        self.clusters["noise"] = []
+
     def run(self, verbose=False):
         """
         Runs algorithm.
@@ -80,7 +91,7 @@ class PreDeCon:
 
         # Determine necessary properties.
         self.calculate_epsilon_neighbourhoods()
-        self.calculate_variances_along_attributes(verbose=True)
+        self.calculate_variances_along_attributes()
         self.calculate_subspace_preference_dimensionalities()
         self.calculate_subspace_preference_vectors()
         self.calculate_preference_weighted_similarity_measures()
@@ -153,7 +164,7 @@ class PreDeCon:
         if verbose:
             print(self.clusters)
 
-        return self.clusters
+        return self.clusters, self._get_cluster_assignments()
 
     # ----------------------------
     # Auxiliary methods.

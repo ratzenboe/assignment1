@@ -51,14 +51,16 @@ and the preference weighted similarity measure associated with a point p can the
 \begin{figure}
 \centering
 \includegraphics[width=0.6\textwidth]{predecon_epsilon_neighbourhood.PNG}
-\caption{\label{fig:predecon_epsilon_neighbourhood} $\epsilon$-neighborhood of p according to (a) simple
+\caption{ $\epsilon$-neighborhood of p according to (a) simple
 Euclidean and (b) preference weighted Euclidean distance.(Figure taken from \cite{bohm2004density})}
+\label{fig:predecon_epsilon_neighbourhood}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=0.6\textwidth]{predecon_pseudocode_paper.PNG}
-\caption{\label{fig:pseudocode_paper} Pseudo code of the PreDeCon algorithm.(Figure taken from \cite{bohm2004density})}
+\caption{Pseudo code of the PreDeCon algorithm.(Figure taken from \cite{bohm2004density})}
+\label{fig:pseudocode_paper}
 \end{figure}
 
 \subsection{The Algorithm}
@@ -76,9 +78,61 @@ In figure \ref{fig:pseudocode_paper} the pseudo code of the original paper is sh
 
 
 \section{The Pseudocode of our implementation}
-
-
 Enter pseudocode of our implementation as soon as finished.
+\section{Parameter Tuning}
+To compare and benchmark our algorithm we took the "Vary Density" data set from the Elki homepage.
+In order to find a suitable tuple of parameters, we first tried guessing a somewhat good combination of parameters and then do a grid search around those parameters to find the best combination. Therefore we first came up with following parameters as shown in Figure \ref{fig:init_paramt}:
+\begin{enumerate}
+\item epsilon: 0.3
+\item mu: 10
+\item delta: 0.1
+\item kappa: 20
+\item lambda: 2
+\end{enumerate}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{init_paramt.png}
+	\caption{Result of PreDeCon-algorithm with initial parameters}
+    \label{fig:init_paramt}
+\end{figure}
+
+By feeding the same parameter combination into elki we obtain the same clusters, shown in Figure \ref{fig:elki_init_paramt}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{elki_init_paramt.png}
+	\caption{ Result of PreDeCon-algorithm in ELKI with initial parameters}
+    \label{fig:elki_init_paramt}
+\end{figure}
+\paragraph{}
+We then applied two different clustering performance evaluation methods onto the several models we calculated. We used Adjusted-Normalized-Information (AMI) and also V-Measure. Both measurements resulted in different "best" parameter combinations. While the AMI chose our initial parameter settings to be the best (Figure \ref{fig:ami_dict}), the V-Measurement chose a completely different model. (Figure \ref{fig:v_score_dict}). 
+
+\begin{figure}
+	\label{fig:ami_dict}
+	\centering
+	\includegraphics[width=0.6\textwidth]{ami_dict.png}
+	\caption{Best result when looking at adjusted mutual information}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{v_score_dict.png}
+	\caption{Best result when looking at v score}
+    \label{fig:v_score_dict}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.6\textwidth]{v_score_graph.png}
+	\caption{Clustering when choosing parameters of v-score winner}
+    \label{fig:v_score_graph}
+\end{figure}
+\paragraph{}
+When looking at Figure \ref{fig:v_score_graph} we can see that according to the V-Measurement the best score is achieved by 7 clusters. In addition to the v-score we also have the completeness and homogeneity measures which both are actually used to calculated the v-score. by definition, the homogeneity measures if each cluster contains only members of a single class. We achieved a homogeneity of 0.9683 as can be seen in Figure \ref{fig:v_score_dict}. In the original data set, there are only 3 clusters and no noise points. In this clustering, the few noise points which are basically assigned to the cluster "noise" come from different ground-truth clusters. every other cluster is within only one of the ground-truth clusters. therefore this score is almost 1. On the other hand completeness is defined as: all members of a given class are assigned to the same cluster. as there are more than 3 clusters, this cannot be true, so this is why this score is at 0.6595 (see Figure \ref{fig:v_score_dict}).
+
+\section{Benchmarking}
+We can already see that the clustering of both the PreDeCon implementation in elki as well as our own have the same result. Though, when it comes to runtime we are far worse off than elki. Elki needs about 6ms to finish the clustering of Figure \ref{fig:v_score_dict}, while our algorithm needs 486ms.
 
 \bibliographystyle{alpha}
 \bibliography{sample}
